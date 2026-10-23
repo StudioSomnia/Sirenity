@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#08090c" />
+<title>Timbre — Voice Cloning Studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2311141b'/%3E%3Cg fill='%23a78bfa'%3E%3Crect x='7' y='13' width='2.5' height='6' rx='1.25'/%3E%3Crect x='12' y='9' width='2.5' height='14' rx='1.25'/%3E%3Crect x='17' y='6' width='2.5' height='20' rx='1.25'/%3E%3Crect x='22' y='11' width='2.5' height='10' rx='1.25'/%3E%3C/g%3E%3C/svg%3E" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="ambient" aria-hidden="true"></div>
+
+<div class="app">
+  <aside class="sidebar">
+    <a class="brand" href="#/voices" aria-label="Timbre home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="32" height="32">
+          <rect width="32" height="32" rx="9" fill="url(#brandGrad)"/>
+          <g fill="#0b0714">
+            <rect x="7" y="13" width="2.6" height="6" rx="1.3"/>
+            <rect x="12" y="9" width="2.6" height="14" rx="1.3"/>
+            <rect x="17" y="6" width="2.6" height="20" rx="1.3"/>
+            <rect x="22" y="11" width="2.6" height="10" rx="1.3"/>
+          </g>
+          <defs>
+            <linearGradient id="brandGrad" x1="0" y1="0" x2="32" y2="32">
+              <stop offset="0" stop-color="#c4b5fd"/>
+              <stop offset="1" stop-color="#7c5cff"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </span>
+      <span class="brand-text">
+        <span class="brand-name">Timbre</span>
+        <span class="brand-sub">voice studio</span>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="Main">
+      <a class="nav-item" data-nav="voices" href="#/voices">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 10v4M7 7v10M11 4v16M15 8v8M19 11v2"/>
+        </svg>
+        <span>Voices</span>
+        <span class="nav-count" id="navVoiceCount" hidden></span>
+      </a>
+      <a class="nav-item" data-nav="studio" href="#/studio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v18M8 7v10M4 10v4M16 6v12M20 9v6"/>
+        </svg>
+        <span>Studio</span>
+      </a>
+      <a class="nav-item" data-nav="history" href="#/history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>
+        </svg>
+        <span>History</span>
+      </a>
+    </nav>
+
+    <div class="side-spacer"></div>
+
+    <div class="engine-card" id="engineCard">
+      <div class="engine-head">
+        <span class="pulse" id="enginePulse"></span>
+        <span class="engine-label" id="engineLabel">Connecting…</span>
+      </div>
+      <p class="engine-detail" id="engineDetail">Looking for the local engine.</p>
+      <button class="mini-btn" type="button" data-action="help">Setup &amp; help</button>
+    </div>
+
+    <p class="side-fine">
+      Local-only. Recordings stay on this machine.
+      <br />Only clone voices you have permission to use.
+    </p>
+  </aside>
+
+  <div class="shell">
+    <div class="offline-bar" id="offlineBar" hidden>
+      <span class="offline-dot"></span>
+      <span><strong>Engine offline.</strong> The local server isn’t responding.</span>
+      <button class="mini-btn" type="button" data-action="help">How to start it</button>
+    </div>
+    <main id="view" class="view" tabindex="-1"></main>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+
+<script src="js/audio.js"></script>
+<script src="js/app.js"></script>
+<script src="js/players.js"></script>
+<script src="js/views.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/studio.js"></script>
+<script src="js/history.js"></script>
+<script src="js/modals.js"></script>
+</body>
+</html>

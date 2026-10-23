@@ -1,0 +1,9 @@
+-r requirements.txt
+
+# The actual voice-cloning engine. ~2.5 GB with PyTorch.
+# On Windows/macOS/Linux the default PyPI torch wheel is CPU-only.
+# For NVIDIA GPUs install torch/torchaudio from the CUDA index first, or run:
+#   .\run.ps1 -Cuda
+torch>=2.2,<2.9
+torchaudio>=2.2,<2.9
+coqui-tts>=0.24,<0.28
