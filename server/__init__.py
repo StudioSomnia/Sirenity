@@ -1,1 +1,1 @@
-"""Timbre server package."""
+﻿"""Sirenity server package."""

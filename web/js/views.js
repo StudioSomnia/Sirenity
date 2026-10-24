@@ -1,8 +1,8 @@
-/* Timbre — the voice library. */
+﻿/* Sirenity — the voice library. */
 (() => {
   "use strict";
 
-  const T = window.Timbre;
+  const T = window.Sirenity;
   const { esc, icon, fmtDur, avatarHtml, statusPill, EMOTIONS } = T;
 
   const media = (path) => (path ? T.API_BASE + path : "");

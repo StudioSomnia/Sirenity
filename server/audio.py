@@ -78,9 +78,13 @@ def _metrics(x: np.ndarray, sr: int, original_channels: int, original_sr: int) -
         if usable >= frame:
             frames = x[:usable].reshape(-1, frame)
             frame_rms = np.sqrt(np.mean(frames**2, axis=1) + 1e-12)
-            loud = np.percentile(frame_rms, 95)
-            noise = max(np.percentile(frame_rms, 10), 1e-9)
-            snr_db = float(20 * math.log10(loud / noise))
+            loud = max(float(np.percentile(frame_rms, 95)), 1e-9)
+            noise = max(float(np.percentile(frame_rms, 5)), 1e-9)
+            # A steady signal (or one with no pauses) has no usable noise
+            # floor. Treat it as unknown instead of reporting 0 dB SNR, which
+            # would wrongly trigger the "noisy room" warning.
+            if loud > noise * 1.2:
+                snr_db = float(20 * math.log10(loud / noise))
             gate = max(loud * 10 ** (-38 / 20), 5e-4)
             silence_pct = float(np.mean(frame_rms < gate) * 100)
 
@@ -152,7 +156,8 @@ def clip_warnings(metrics: dict, *, emotion: str) -> list[dict]:
         warnings.append(
             {"level": "warn", "text": "Clipping — move back from the mic or lower the gain."}
         )
-    if metrics.get("snr_db", 99) < 12:
+    snr = float(metrics.get("snr_db") or 0)
+    if 0 < snr < 12:
         warnings.append(
             {"level": "warn", "text": "Noisy room. A quieter space will improve the clone."}
         )

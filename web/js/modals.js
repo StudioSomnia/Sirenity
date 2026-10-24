@@ -1,8 +1,8 @@
-/* Timbre — dialogs: voices, recording, confirmation and setup help. */
+﻿/* Sirenity — dialogs: voices, recording, confirmation and setup help. */
 (() => {
   "use strict";
 
-  const T = window.Timbre;
+  const T = window.Sirenity;
   const { esc, icon } = T;
 
   let currentModal = null;
@@ -465,7 +465,7 @@
 
     openModal({
       eyebrow: "Setup & help",
-      title: "How Timbre works",
+      title: "How Sirenity works",
       wide: true,
       body: `
         <div class="card" style="padding:14px">
@@ -494,7 +494,7 @@
           <div style="display:flex;flex-direction:column;gap:8px">
             <div class="code-block">.\\run.ps1<button class="copy-btn" type="button" data-action="copy" data-copy=".\\run.ps1" aria-label="Copy">${icon("copy")}</button></div>
             <div class="code-block">.\\run.ps1 -Cuda<button class="copy-btn" type="button" data-action="copy" data-copy=".\\run.ps1 -Cuda" aria-label="Copy">${icon("copy")}</button></div>
-            <div class="code-block">$env:TIMBRE_ENGINE = "mock"; .\\run.ps1 -Mock<button class="copy-btn" type="button" data-action="copy" data-copy='$env:TIMBRE_ENGINE = "mock"; .\\run.ps1 -Mock' aria-label="Copy">${icon("copy")}</button></div>
+            <div class="code-block">$env:SIRENITY_ENGINE = "mock"; .\\run.ps1 -Mock<button class="copy-btn" type="button" data-action="copy" data-copy='$env:SIRENITY_ENGINE = "mock"; .\\run.ps1 -Mock' aria-label="Copy">${icon("copy")}</button></div>
           </div>
           <p class="hint" style="margin-top:7px">Use <span class="mono">-Cuda</span> to install the CUDA build of torch. Use <span class="mono">-Mock</span> to try the whole app without the 2 GB engine download.</p>
         </div>
@@ -532,7 +532,7 @@
           </div>
         </div>
 
-        <div class="consent-note">Timbre never uploads audio. It exists for consented voice work: your own voice, hired performers, or voices you have written permission to reproduce. Do not use it to impersonate people or to mislead.</div>`,
+        <div class="consent-note">Sirenity never uploads audio. It exists for consented voice work: your own voice, hired performers, or voices you have written permission to reproduce. Do not use it to impersonate people or to mislead.</div>`,
       foot: `<button class="btn primary" type="button" data-close>Got it</button>`,
     });
   }

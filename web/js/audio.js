@@ -1,5 +1,5 @@
-/* Timbre — client-side audio helpers (no dependencies). */
-window.TimbreAudio = (() => {
+﻿/* Sirenity — client-side audio helpers (no dependencies). */
+window.SirenityAudio = (() => {
   "use strict";
 
   const TARGET_SR = 24000;

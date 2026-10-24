@@ -1,8 +1,8 @@
-/* Timbre — shared playback and waveform hydration. */
+﻿/* Sirenity — shared playback and waveform hydration. */
 (() => {
   "use strict";
 
-  const T = window.Timbre;
+  const T = window.Sirenity;
   const A = T.A;
   const registry = new Map();
 

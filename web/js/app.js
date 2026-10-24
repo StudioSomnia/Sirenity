@@ -1,9 +1,9 @@
-/* Timbre — application core: data, routing, health, shared UI helpers. */
+﻿/* Sirenity — application core: data, routing, health, shared UI helpers. */
 (() => {
   "use strict";
 
-  const A = window.TimbreAudio;
-  const T = (window.Timbre = window.Timbre || {});
+  const A = window.SirenityAudio;
+  const T = (window.Sirenity = window.Sirenity || {});
   T.actions = {};
 
   // ------------------------------------------------------------------ data
@@ -231,12 +231,12 @@
   }
 
   function persist(key, value) {
-    try { localStorage.setItem(`timbre.${key}`, JSON.stringify(value)); } catch (_) {}
+    try { localStorage.setItem(`sirenity.${key}`, JSON.stringify(value)); } catch (_) {}
   }
 
   function restore(key, fallback) {
     try {
-      const raw = localStorage.getItem(`timbre.${key}`);
+      const raw = localStorage.getItem(`sirenity.${key}`);
       return raw ? JSON.parse(raw) : fallback;
     } catch (_) {
       return fallback;

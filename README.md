@@ -1,4 +1,4 @@
-# Timbre
+﻿# Sirenity
 
 A local, ElevenLabs-style voice studio: record or upload speech, train a voice, and generate new lines in the moods you taught it. Everything runs on your machine — takes, models and generated audio never leave it.
 
@@ -45,14 +45,17 @@ Double-click **`start.bat`**, or from PowerShell:
 
 The launcher creates `.venv`, installs the server dependencies, then asks whether to install the voice engine. Answer **Y** for real cloning. Later runs skip straight to starting the server and open <http://127.0.0.1:8000>.
 
+The first time the real engine starts, the launcher also asks you to accept Coqui's non-commercial [CPML](https://coqui.ai/cpml) licence. Accepting writes `data/.cpml-agreed` and sets `COQUI_TOS_AGREED=1` for that run; declining starts the mock engine instead. Use `-AcceptLicense` to accept non-interactively.
+
 Options:
 
 ```powershell
-.\run.ps1 -Mock          # skip PyTorch; placeholder tones
-.\run.ps1 -Cuda          # install CUDA torch during first setup
-.\run.ps1 -SkipEngine    # base server only (mock engine)
-.\run.ps1 -Port 8010     # different port
-.\run.ps1 -Reinstall     # rebuild .venv
+.\run.ps1 -Mock           # skip PyTorch; placeholder tones
+.\run.ps1 -Cuda           # install CUDA torch during first setup
+.\run.ps1 -SkipEngine     # base server only (mock engine)
+.\run.ps1 -Port 8010      # different port
+.\run.ps1 -Reinstall      # rebuild .venv
+.\run.ps1 -AcceptLicense  # accept the CPML without prompting
 ```
 
 ### macOS / Linux
@@ -62,16 +65,19 @@ chmod +x run.sh
 ./run.sh
 ```
 
-Options: `--mock`, `--cuda`, `--skip-engine`, `--port 8010`, `--no-browser`.
+Options: `--mock`, `--cuda`, `--skip-engine`, `--port 8010`, `--no-browser`, `--accept-license`. The CPML prompt behaves the same as on Windows and stores the marker in `data/.cpml-agreed`.
 
 ### Manual start
+
+The launchers handle the CPML prompt for you. For a manual start, accept the licence yourself first by setting `COQUI_TOS_AGREED=1` (after reading <https://coqui.ai/cpml>) or by answering Coqui's prompt once in an interactive Python session.
 
 ```powershell
 # Windows
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 pip install -r requirements-engine.txt   # optional: real cloning
-$env:TIMBRE_ENGINE = "mock"              # optional: skip torch
+$env:COQUI_TOS_AGREED = "1"              # required for XTTS v2
+$env:SIRENITY_ENGINE = "mock"              # optional: skip torch
 uvicorn server.main:app --host 127.0.0.1 --port 8000
 ```
 
@@ -80,10 +86,12 @@ uvicorn server.main:app --host 127.0.0.1 --port 8000
 source .venv/bin/activate
 pip install -r requirements.txt
 pip install -r requirements-engine.txt
-TIMBRE_ENGINE=mock uvicorn server.main:app --host 127.0.0.1 --port 8000
+COQUI_TOS_AGREED=1 uvicorn server.main:app --host 127.0.0.1 --port 8000
+# or, without the engine:
+SIRENITY_ENGINE=mock uvicorn server.main:app --host 127.0.0.1 --port 8000
 ```
 
-Open <http://127.0.0.1:8000>. Use `127.0.0.1`, not a `file://` path, if you want to record from the microphone.
+Open <http://127.0.0.1:8000>. Use that URL rather than opening `web/index.html` as a `file://` path: microphone access and the API both require the local server.
 
 ---
 
@@ -110,7 +118,7 @@ Changing samples after training marks the model **stale**. It still works; retra
 
 ## How the emotion system works
 
-XTTS v2 clones from reference audio. For each emotion, Timbre runs the model's conditioning encoder over that emotion's takes and saves the resulting `gpt_cond_latent` and `speaker_embedding` to disk (`data/voices/<id>/model/<emotion>.pt`).
+XTTS v2 clones from reference audio. For each emotion, Sirenity runs the model's conditioning encoder over that emotion's takes and saves the resulting `gpt_cond_latent` and `speaker_embedding` to disk (`data/voices/<id>/model/<emotion>.pt`).
 
 At generation time:
 
@@ -126,7 +134,7 @@ This is zero-shot conditioning, not fine-tuning: training is fast, needs little 
 ## Project layout
 
 ```
-Siren/
+Sirenity/
   server/
     main.py        FastAPI routes, validation, training job, synthesis
     engine.py      XTTS v2 engine + mock engine
@@ -146,7 +154,7 @@ Siren/
       history.js   generation history
       modals.js    voice forms, recorder, confirmations, help
   data/            created at runtime (gitignored)
-    timbre.db
+    sirenity.db
     voices/<voice-id>/{clips,model}/
     outputs/
   requirements.txt
@@ -181,13 +189,14 @@ Interactive API docs: <http://127.0.0.1:8000/docs>.
 
 ## Data, privacy and consent
 
-- SQLite database: `data/timbre.db`.
+- SQLite database: `data/sirenity.db`.
 - Samples: `data/voices/<voice-id>/clips/`.
 - Cached latents: `data/voices/<voice-id>/model/`.
 - Generated WAVs: `data/outputs/`.
 - The server binds to `127.0.0.1` only. No telemetry, no cloud calls except the one-time model download from Hugging Face.
+- CORS is disabled because the client is served from the same origin, and foreign `Host` headers are rejected. This stops other websites from reading your local voice library through your browser. For LAN use, set `SIRENITY_ALLOWED_HOSTS=host1,host2` and bind uvicorn to the interface you need.
 - Delete a voice from its header to remove its samples, model and takes.
-- Override the data folder with `TIMBRE_DATA`, the engine with `TIMBRE_ENGINE=xtts|mock`, and the device with `TIMBRE_DEVICE=cpu|cuda`.
+- Override the data folder with `SIRENITY_DATA`, the engine with `SIRENITY_ENGINE=xtts|mock`, and the device with `SIRENITY_DEVICE=cpu|cuda`.
 
 Only clone voices you own or have explicit permission to reproduce. The consent checkbox is required before a voice can be created, and the UI repeats this reminder. Impersonation, fraud and harassment are not acceptable uses.
 
@@ -201,9 +210,11 @@ Only clone voices you own or have explicit permission to reproduce. The consent 
 
 **“Engine not installed”** — run the launcher without `-Mock`, or activate `.venv` and run `pip install -r requirements-engine.txt`. Install Python 3.10–3.12; 3.13+ may not have compatible torch wheels.
 
+**“XTTS v2 requires acceptance of Coqui's … CPML”** — read <https://coqui.ai/cpml>, then start with `.\run.ps1` and answer **y**, or use `.\run.ps1 -AcceptLicense`. The acceptance is remembered in `data/.cpml-agreed`. Delete that file to be asked again.
+
 **First training seems stuck** — XTTS downloads ~1.8 GB the first time. Watch the job log in the training panel; CPU conditioning can take a minute or more.
 
-**GPU not used** — check `nvidia-smi`, and install CUDA torch (`.\run.ps1 -Cuda`). Set `TIMBRE_DEVICE=cuda` to force it. XTTS on 4 GB VRAM can be tight — close other GPU apps and keep scripts short.
+**GPU not used** — check `nvidia-smi`, and install CUDA torch (`.\run.ps1 -Cuda`). Set `SIRENITY_DEVICE=cuda` to force it. XTTS on 4 GB VRAM can be tight — close other GPU apps and keep scripts short.
 
 **Port already in use** — `.\run.ps1 -Port 8010`.
 
@@ -225,4 +236,6 @@ Only clone voices you own or have explicit permission to reproduce. The consent 
 
 ## Credits
 
-Built as a local-first interface around [Coqui TTS](https://github.com/idiap/coqui-ai-TTS) and XTTS v2. The client, API and design system are dependency-free. Please respect the XTTS model licence and the rights of the people whose voices you record.
+Built as a local-first interface around [Coqui TTS](https://github.com/idiap/coqui-ai-TTS) and XTTS v2. The client, API and design system are dependency-free.
+
+XTTS v2 is released under the Coqui Public Model License (CPML), which restricts commercial use. Check the model licence before using generated audio commercially. Please also respect the rights of the people whose voices you record.

@@ -1,4 +1,4 @@
-# Timbre local data
+﻿# Sirenity local data
 data/
 *.db
 *.db-wal
@@ -9,6 +9,9 @@ data/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+
+# Session transcripts / scratch notes
+ses_*.json
 
 # Editors / OS
 .vscode/

@@ -6,4 +6,7 @@
 #   .\run.ps1 -Cuda
 torch>=2.2,<2.9
 torchaudio>=2.2,<2.9
-coqui-tts>=0.24,<0.28
+coqui-tts>=0.27,<0.28
+# coqui-tts 0.27.x declares transformers>=4.57 but is not yet compatible with
+# transformers 5.x (it imports isin_mps_friendly, removed in v5). Keep the 4.x line.
+transformers>=4.57,<5

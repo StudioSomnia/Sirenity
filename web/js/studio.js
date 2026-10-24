@@ -1,8 +1,8 @@
-/* Timbre — the script-to-speech studio. */
+﻿/* Sirenity — the script-to-speech studio. */
 (() => {
   "use strict";
 
-  const T = window.Timbre;
+  const T = window.Sirenity;
   const { esc, icon, fmtDur, EMOTIONS, EMOTION_COLORS, SAMPLE_TEXTS, LANGS } = T;
   const media = T.media;
 

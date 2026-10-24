@@ -1,6 +1,6 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
-  Timbre launcher (Windows).
+  Sirenity launcher (Windows).
 
   First run creates .venv, installs the web server, and offers to install the
   XTTS voice engine. Later runs start the server immediately.
@@ -11,6 +11,7 @@
     .\run.ps1 -Mock           # placeholder engine, no torch download
     .\run.ps1 -Port 8010      # use another port
     .\run.ps1 -Reinstall      # rebuild the virtual environment
+    .\run.ps1 -AcceptLicense  # accept the CPML non-interactively
 #>
 param(
     [int]$Port = 8000,
@@ -18,7 +19,8 @@ param(
     [switch]$Cuda,
     [switch]$SkipEngine,
     [switch]$Reinstall,
-    [switch]$NoBrowser
+    [switch]$NoBrowser,
+    [switch]$AcceptLicense
 )
 
 $ErrorActionPreference = "Stop"
@@ -76,7 +78,7 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-$mock = $Mock.IsPresent -or ($env:TIMBRE_ENGINE -eq "mock")
+$mock = $Mock.IsPresent -or ($env:SIRENITY_ENGINE -eq "mock")
 if (-not $mock) {
     $hasEngine = (& $python -c "import importlib.util; print('1' if importlib.util.find_spec('TTS') else '0')").Trim()
     if ($hasEngine -ne "1") {
@@ -106,8 +108,38 @@ if (-not $mock) {
     }
 }
 
+$licenseMarker = Join-Path $Root "data\.cpml-agreed"
+
+if (-not $mock) {
+    if ($env:COQUI_TOS_AGREED -eq "1" -or (Test-Path $licenseMarker)) {
+        # Already accepted on an earlier run; keep Coqui's prompt quiet.
+        $env:COQUI_TOS_AGREED = "1"
+    } else {
+        if ($AcceptLicense) {
+            $accept = "y"
+        } else {
+            Write-Host ""
+            Write-Host "XTTS v2 model licence (CPML)" -ForegroundColor Yellow
+            Write-Host "The XTTS v2 model is licensed for non-commercial use only under Coqui's"
+            Write-Host "Public Model License: https://coqui.ai/cpml"
+            Write-Host "Generated audio needs a separate licence for commercial use."
+            $accept = Read-Host "Do you accept the CPML for non-commercial use? [y/N]"
+        }
+        if ($accept -match '^(y|yes)$') {
+            $env:COQUI_TOS_AGREED = "1"
+            New-Item -ItemType Directory -Force -Path (Split-Path $licenseMarker) | Out-Null
+            Set-Content -Path $licenseMarker -Encoding UTF8 `
+                -Value "Accepted Coqui CPML on $(Get-Date -Format 'yyyy-MM-dd')"
+            Write-Host "CPML accepted." -ForegroundColor Green
+        } else {
+            $mock = $true
+            Write-Host "CPML not accepted. Starting with the mock engine instead." -ForegroundColor Yellow
+        }
+    }
+}
+
 if ($mock) {
-    $env:TIMBRE_ENGINE = "mock"
+    $env:SIRENITY_ENGINE = "mock"
     Write-Host "Mock engine enabled: the studio works, but speech is placeholder tones." -ForegroundColor Yellow
 }
 
@@ -121,7 +153,7 @@ if (-not $NoBrowser) {
 }
 
 Write-Host ""
-Write-Host "Timbre is starting at $url" -ForegroundColor Green
+Write-Host "Sirenity is starting at $url" -ForegroundColor Green
 Write-Host "Press Ctrl+C to stop the server."
 Write-Host ""
 

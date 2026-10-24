@@ -1,8 +1,8 @@
-/* Timbre — generation history. */
+﻿/* Sirenity — generation history. */
 (() => {
   "use strict";
 
-  const T = window.Timbre;
+  const T = window.Sirenity;
   const { esc, icon, fmtDur, fmtDateTime, dayLabel } = T;
   const media = T.media;
 

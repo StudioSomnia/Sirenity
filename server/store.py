@@ -1,4 +1,4 @@
-"""SQLite persistence for voices, reference clips, training jobs and generations."""
+﻿"""SQLite persistence for voices, reference clips, training jobs and generations."""
 
 from __future__ import annotations
 
@@ -97,7 +97,7 @@ class Store:
         self.outputs_root = self.root / "outputs"
         self.voices_root.mkdir(parents=True, exist_ok=True)
         self.outputs_root.mkdir(parents=True, exist_ok=True)
-        self.db_path = self.root / "timbre.db"
+        self.db_path = self.root / "sirenity.db"
         self._lock = threading.RLock()
         with self._db() as db:
             db.executescript(SCHEMA)

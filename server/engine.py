@@ -1,4 +1,4 @@
-"""Synthesis engines.
+﻿"""Synthesis engines.
 
 `XttsEngine` is the real voice-cloning path: it uses Coqui XTTS v2 in zero-shot
 mode, but caches one conditioning latent per emotion so each take can be
@@ -7,12 +7,13 @@ re-synthesised with a different emotional reference in a fraction of a second.
 `MockEngine` writes placeholder tones. It exists so the whole app (upload →
 train → synthesise → history) can be exercised without torch or a GPU:
 
-    $env:TIMBRE_ENGINE = "mock"
+    $env:SIRENITY_ENGINE = "mock"
 """
 
 from __future__ import annotations
 
 import importlib.util
+import inspect
 import json
 import math
 import os
@@ -23,7 +24,7 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-XTTS_MODEL = os.environ.get("TIMBRE_XTTS_MODEL", "tts_models/multilingual/multi-dataset/xtts_v2")
+XTTS_MODEL = os.environ.get("SIRENITY_XTTS_MODEL", "tts_models/multilingual/multi-dataset/xtts_v2")
 OUTPUT_SR = 24000
 
 
@@ -40,6 +41,19 @@ def _read_latent(path: Path):
 
     payload = torch.load(str(path), map_location="cpu")
     return payload["gpt_cond_latent"], payload["speaker_embedding"]
+
+
+def _xtts_tos_accepted() -> bool:
+    """True once the user has accepted Coqui's non-commercial CPML."""
+    if os.environ.get("COQUI_TOS_AGREED") == "1":
+        return True
+    try:
+        from trainer.io import get_user_data_dir
+
+        model_dir = Path(get_user_data_dir("tts")) / XTTS_MODEL.replace("/", "--")
+        return (model_dir / "tos_agreed.txt").is_file()
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def _as_float_array(value) -> np.ndarray:
@@ -121,14 +135,22 @@ class XttsEngine(BaseEngine):
                 raise EngineUnavailable(
                     "The XTTS engine is not installed. Run `run.ps1` (or "
                     "`pip install -r requirements-engine.txt`) to install torch and "
-                    "coqui-tts. Set TIMBRE_ENGINE=mock to test the app without them."
+                    "coqui-tts. Set SIRENITY_ENGINE=mock to test the app without them."
+                )
+            if not _xtts_tos_accepted():
+                raise EngineUnavailable(
+                    "XTTS v2 requires a one-time acceptance of Coqui's non-commercial "
+                    "CPML (https://coqui.ai/cpml). Start the app with run.ps1 and answer "
+                    "Y to the licence prompt, or set COQUI_TOS_AGREED=1 in the server "
+                    "environment after reading the licence. Use SIRENITY_ENGINE=mock to "
+                    "skip the model."
                 )
             self._state = "loading"
             try:
                 import torch
                 from TTS.api import TTS
 
-                requested = os.environ.get("TIMBRE_DEVICE", "auto").strip().lower()
+                requested = os.environ.get("SIRENITY_DEVICE", "auto").strip().lower()
                 if requested in {"cpu", "cuda"}:
                     device = requested
                 else:
@@ -166,17 +188,27 @@ class XttsEngine(BaseEngine):
         model = tts.synthesizer.tts_model
         paths = [str(p) for p in wav_paths]
 
+        # The conditioning signature has changed across coqui-tts releases
+        # (`max_ref_len` vs `max_ref_length`), so only pass what this build
+        # actually accepts. Longer context improves similarity; 30 s is the
+        # model's practical maximum.
+        params = inspect.signature(model.get_conditioning_latents).parameters
+        kwargs: dict = {"audio_path": paths}
+        if "gpt_cond_len" in params:
+            kwargs["gpt_cond_len"] = 30
+        if "gpt_cond_chunk_len" in params:
+            kwargs["gpt_cond_chunk_len"] = 6
+        if "max_ref_length" in params:
+            kwargs["max_ref_length"] = 30
+        elif "max_ref_len" in params:
+            kwargs["max_ref_len"] = 30
+        if "sound_norm_refs" in params:
+            kwargs["sound_norm_refs"] = False
         try:
-            gpt_cond, speaker = model.get_conditioning_latents(audio_path=paths)
+            gpt_cond, speaker = model.get_conditioning_latents(**kwargs)
         except TypeError:
-            # Older/newer builds expose slightly different signatures.
-            gpt_cond, speaker = model.get_conditioning_latents(
-                audio_path=paths,
-                gpt_cond_len=30,
-                gpt_cond_chunk_len=6,
-                max_ref_len=30,
-                sound_norm_refs=False,
-            )
+            # A wrapper or a future build may hide the real signature.
+            gpt_cond, speaker = model.get_conditioning_latents(audio_path=paths)
 
         out_path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(
@@ -247,7 +279,7 @@ class XttsEngine(BaseEngine):
                 speaker = speaker.to(self._device)
             except AttributeError:
                 pass
-            params = {
+            candidates = {
                 "text": text,
                 "language": language,
                 "gpt_cond_latent": gpt_cond,
@@ -255,6 +287,15 @@ class XttsEngine(BaseEngine):
                 "speed": float(speed),
                 "enable_text_splitting": True,
             }
+            accepted = inspect.signature(model.inference).parameters
+            takes_kwargs = any(
+                p.kind is inspect.Parameter.VAR_KEYWORD for p in accepted.values()
+            )
+            params = (
+                candidates
+                if takes_kwargs
+                else {key: value for key, value in candidates.items() if key in accepted}
+            )
             try:
                 result = model.inference(**params)
             except TypeError:
@@ -305,7 +346,7 @@ class MockEngine(BaseEngine):
             "state": "ready",
             "device": "cpu",
             "error": "",
-            "model": "sine placeholder — set TIMBRE_ENGINE=auto for real cloning",
+            "model": "sine placeholder — set SIRENITY_ENGINE=auto for real cloning",
         }
 
     def train_emotion(self, wav_paths: list[Path], out_path: Path) -> dict:
@@ -374,7 +415,7 @@ class MockEngine(BaseEngine):
 
 
 def build_engine() -> BaseEngine:
-    choice = os.environ.get("TIMBRE_ENGINE", "auto").strip().lower()
+    choice = os.environ.get("SIRENITY_ENGINE", "auto").strip().lower()
     if choice == "mock":
         return MockEngine()
     return XttsEngine()

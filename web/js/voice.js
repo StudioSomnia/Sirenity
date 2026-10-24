@@ -1,8 +1,8 @@
-/* Timbre — voice detail: samples, moods and training. */
+﻿/* Sirenity — voice detail: samples, moods and training. */
 (() => {
   "use strict";
 
-  const T = window.Timbre;
+  const T = window.Sirenity;
   const { esc, icon, fmtDur, fmtDate, fmtDateTime, avatarHtml, statusPill, EMOTIONS } = T;
   const media = T.media;
 

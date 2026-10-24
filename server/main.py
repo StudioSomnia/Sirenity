@@ -1,4 +1,4 @@
-"""Timbre — local voice-cloning studio API.
+﻿"""Sirenity — local voice-cloning studio API.
 
 Run with:  uvicorn server.main:app --host 127.0.0.1 --port 8000
 Open:      http://127.0.0.1:8000
@@ -16,7 +16,7 @@ from typing import Annotated, Optional
 
 import soundfile as sf
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
@@ -26,7 +26,7 @@ from .engine import EngineError, EngineUnavailable, build_engine
 from .store import EMOTIONS, Store, new_id
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = Path(os.environ.get("TIMBRE_DATA", str(BASE_DIR / "data"))).resolve()
+DATA_DIR = Path(os.environ.get("SIRENITY_DATA", str(BASE_DIR / "data"))).resolve()
 WEB_DIR = BASE_DIR / "web"
 
 MIN_NEUTRAL_SECONDS = 6.0
@@ -46,14 +46,17 @@ TMP_DIR.mkdir(parents=True, exist_ok=True)
 ENGINE_LOCK = threading.Lock()
 BACKGROUND_TASKS: set[asyncio.Task] = set()
 
-app = FastAPI(title="Timbre", version="1.0.0")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI(title="Sirenity", version="1.0.0")
+
+# The client is served from this same origin, so no CORS is needed. Refusing
+# foreign Host headers also blocks DNS-rebinding pages from reading the local
+# voice library. Override for LAN use with SIRENITY_ALLOWED_HOSTS=host1,host2.
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get("SIRENITY_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
+    if host.strip()
+]
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS)
 
 
 # --------------------------------------------------------------------- schemas
@@ -193,7 +196,7 @@ async def health() -> dict:
             "max_upload_mb": MAX_UPLOAD_BYTES // (1024 * 1024),
         },
         "data_dir": str(DATA_DIR),
-        "engine_override": os.environ.get("TIMBRE_ENGINE", "auto"),
+        "engine_override": os.environ.get("SIRENITY_ENGINE", "auto"),
         "version": app.version,
     }
 
@@ -591,6 +594,15 @@ async def speak(voice_id: str, payload: SpeakIn) -> dict:
             status_code=409,
             detail="Train this voice before generating speech.",
         )
+    trained_with = voice["model"].get("engine")
+    if trained_with and trained_with != engine.key:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"This voice was trained with the {trained_with} engine. Retrain it "
+                f"before using the {engine.label} engine."
+            ),
+        )
 
     generation_id = new_id("g")
     out_path = store.output_path(generation_id)
@@ -642,7 +654,7 @@ async def generation_audio(generation_id: str):
         raise HTTPException(status_code=404, detail="Audio file is missing on disk.")
     stem = re.sub(r"[^A-Za-z0-9_-]+", "-", generation["text"][:40]).strip("-") or "speech"
     return FileResponse(
-        str(path), media_type="audio/wav", filename=f"timbre-{stem}.wav"
+        str(path), media_type="audio/wav", filename=f"sirenity-{stem}.wav"
     )
 
 
@@ -657,7 +669,7 @@ async def delete_generation(generation_id: str) -> None:
 
 @app.get("/api")
 async def api_root() -> dict:
-    return {"name": "Timbre", "version": app.version, "docs": "/docs"}
+    return {"name": "Sirenity", "version": app.version, "docs": "/docs"}
 
 
 # ---------------------------------------------------------------------- static
